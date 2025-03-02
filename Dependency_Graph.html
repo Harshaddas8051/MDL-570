@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dependency Graph</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .node {
+            cursor: pointer;
+            fill: #ecef8e;
+            stroke: #040404;
+            stroke-width: 2px;
+        }
+        .node text {
+            font-size: 16px;
+            fill: #fff;
+        }
+        .link {
+            stroke: #999;
+            stroke-width: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Dependency Graph</h1>
+    <svg id="graph" width="800" height="600" ></svg>
+
+    <script>
+        // Initial data for the graph
+        const graphData = {
+            "MDL-570": ["MDL-641", "MDL-520"],
+            "MDL-641": ["MDL-642"],
+            "MDL-520": ["MDL-283"]
+        };
+
+        const svg = document.getElementById("graph");
+        const nodeRadius = 35;
+
+        // Function to render the graph
+        function renderGraph(data, rootNode = "MDL-570", x = 400, y = 50, level = 0) {
+            const nodes = [];
+            const links = [];
+
+            // Recursively build nodes and links
+            function buildGraph(node, x, y, level) {
+                if (nodes.find(n => n.id === node)) return; // Avoid duplicate nodes
+
+                nodes.push({ id: node, x, y });
+                const dependencies = data[node] || [];
+                dependencies.forEach((dep, index) => {
+                    const childX = x + (index - (dependencies.length - 1) / 2) * 150; // Spread horizontally
+                    const childY = y + 100; // Vertical spacing
+                    links.push({ source: node, target: dep });
+                    buildGraph(dep, childX, childY, level + 1);
+                });
+            }
+
+            buildGraph(rootNode, x, y, level);
+
+            // Clear previous graph
+            svg.innerHTML = "";
+
+            // Draw links
+            links.forEach(link => {
+                const sourceNode = nodes.find(n => n.id === link.source);
+                const targetNode = nodes.find(n => n.id === link.target);
+                if (sourceNode && targetNode) {
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", sourceNode.x);
+                    line.setAttribute("y1", sourceNode.y);
+                    line.setAttribute("x2", targetNode.x);
+                    line.setAttribute("y2", targetNode.y);
+                    line.setAttribute("class", "link");
+                    svg.appendChild(line);
+                }
+            });
+
+            // Draw nodes
+            nodes.forEach(node => {
+                const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                group.setAttribute("transform", `translate(${node.x}, ${node.y})`);
+                group.setAttribute("class", "node");
+                group.addEventListener("click", () => renderGraph(data, node.id));
+
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("r", nodeRadius);
+                group.appendChild(circle);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dy", ".35em");
+                text.textContent = node.id;
+                group.appendChild(text);
+
+                svg.appendChild(group);
+            });
+        }
+
+        // Initial render
+        renderGraph(graphData);
+    </script>
+</body>
+</html>
